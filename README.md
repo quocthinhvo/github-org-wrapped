@@ -2,6 +2,8 @@
 
 A simple web tool to generate yearly statistics for any GitHub organization — commits, PRs, issues, top contributors, and more.
 
+![Demo](demo.jpg)
+
 ## Features
 
 - 📊 Total commits, PRs, issues, and merged PRs count
