@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Org Wrapped</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    
+    <style>
+        /* ========== CSS Variables ========== */
+        :root {
+            --bg-dark: #09090b;
+            --card-bg: rgba(24, 24, 27, 0.7);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #ededed;
+            --text-muted: #a1a1aa;
+            --accent-gradient: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            --accent-color: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+
+        /* ========== Base Styles ========== */
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-dark);
+            background-image: radial-gradient(circle at 50% 0%, #1e1e24 0%, transparent 50%);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* ========== Header & Login ========== */
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin: 0;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .login-wrapper {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            padding: 30px;
+            border-radius: 16px;
+            max-width: 450px;
+            margin: 0 auto;
+            backdrop-filter: blur(10px);
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            color: white;
+            border-radius: 8px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--card-border);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        select option {
+            background: #18181b;
+            color: white;
+        }
+
+        .btn-primary {
+            background: var(--accent-gradient);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            width: 100%;
+            cursor: pointer;
+            font-weight: bold;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.9;
+        }
+
+        /* ========== Org Header ========== */
+        .org-header {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            backdrop-filter: blur(10px);
+        }
+
+        .org-avatar {
+            width: 64px;
+            height: 64px;
+            border-radius: 12px;
+            border: 2px solid var(--card-border);
+        }
+
+        .org-info h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .org-info p {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ========== Dashboard Grid ========== */
+        .dashboard {
+            display: none;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .big-number {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: white;
+        }
+
+        .sub-text {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        /* ========== Grid Utilities ========== */
+        .span-2 { grid-column: span 2; }
+        .row-span-2 { grid-row: span 2; }
+
+        /* ========== Contributors List ========== */
+        .contrib-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .contrib-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .contrib-item:last-child {
+            border-bottom: none;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            margin-right: 12px;
+            border: 2px solid var(--card-border);
+        }
+
+        .rank {
+            font-weight: bold;
+            width: 20px;
+            color: var(--text-muted);
+        }
+
+        /* ========== Loading & Error States ========== */
+        .loading-overlay {
+            display: none;
+            text-align: center;
+            color: var(--accent-color);
+            margin-top: 15px;
+        }
+
+        .error-msg {
+            color: var(--danger);
+            display: none;
+            margin-top: 10px;
+        }
+
+        /* ========== Download Button ========== */
+        .btn-download {
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 20px auto 0;
+            transition: all 0.2s;
+        }
+
+        .btn-download:hover {
+            background: rgba(59, 130, 246, 0.2);
+            border-color: var(--accent-color);
+        }
+
+        /* ========== Responsive Design ========== */
+        @media (max-width: 1024px) {
+            .dashboard { grid-template-columns: repeat(2, 1fr); }
+            .span-2 { grid-column: span 2; }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .span-2 { grid-column: span 1; }
+            .org-header { flex-direction: column; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <header>
+        <h1><i class="ph-fill ph-code-block"></i> Org Wrapped <span id="headerYear">2025</span></h1>
+        <div style="color: var(--text-muted)">Commits, LOC & Top Contributors Statistics</div>
+    </header>
+
+    <!-- Login Form -->
+    <div class="login-wrapper" id="loginArea">
+        <input type="text" id="orgName" placeholder="Organization name (e.g. google)" />
+        <input type="password" id="token" placeholder="GitHub Token (repo, read:org scope)" />
+        <select id="yearSelect">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+        </select>
+        <button class="btn-primary" onclick="runAnalysis()">
+            <i class="ph-bold ph-lightning"></i> Start Analysis
+        </button>
+        <div class="loading-overlay" id="loader">
+            <div>Analyzing all data...</div>
+            <div id="loaderStatus" style="font-size: 0.85rem; margin-top: 8px; opacity: 0.8;">Initializing...</div>
+            <div style="font-size: 0.75rem; margin-top: 5px; opacity: 0.6;">⏱️ May take 1-3 minutes depending on repo count</div>
+        </div>
+        <div class="error-msg" id="errorMsg"></div>
+    </div>
+
+    <!-- Org Header (shown after analysis) -->
+    <div class="org-header" id="orgHeader">
+        <img id="orgAvatar" class="org-avatar" src="" alt="Org Avatar" />
+        <div class="org-info">
+            <h2 id="orgDisplayName"></h2>
+            <p id="orgDescription"></p>
+        </div>
+    </div>
+
+    <!-- Dashboard Grid -->
+    <div class="dashboard" id="mainDash">
+        <!-- Total Commits -->
+        <div class="card">
+            <div class="card-header">
+                <span>TOTAL COMMITS</span>
+                <i class="ph-fill ph-git-commit" style="color: #34d399"></i>
+            </div>
+            <div class="big-number" id="valCommits">0</div>
+            <div class="sub-text" id="subCommits">Total commits in 2025</div>
+        </div>
+
+        <!-- Pull Requests -->
+        <div class="card">
+            <div class="card-header">
+                <span>PULL REQUESTS</span>
+                <i class="ph-fill ph-git-pull-request" style="color: #a78bfa"></i>
+            </div>
+            <div class="big-number" id="valPR">0</div>
+            <div class="sub-text">PRs created</div>
+        </div>
+
+        <!-- Issues -->
+        <div class="card">
+            <div class="card-header">
+                <span>ISSUES</span>
+                <i class="ph-fill ph-bug" style="color: #f472b6"></i>
+            </div>
+            <div class="big-number" id="valIssues">0</div>
+            <div class="sub-text">Issues reported</div>
+        </div>
+
+        <!-- Merged PRs -->
+        <div class="card">
+            <div class="card-header">
+                <span>MERGED</span>
+                <i class="ph-fill ph-git-merge" style="color: #22c55e"></i>
+            </div>
+            <div class="big-number" id="valMerged">0</div>
+            <div class="sub-text">PRs merged successfully</div>
+        </div>
+
+        <!-- Code Impact (LOC) -->
+        <div class="card span-2">
+            <div class="card-header">
+                <span>CODE IMPACT (LOC)</span>
+                <i class="ph-fill ph-file-code" style="color: #fbbf24"></i>
+            </div>
+            <div style="display: flex; gap: 30px; align-items: center; height: 100%;">
+                <div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted)">Added</div>
+                    <div class="big-number" id="valAdd" style="color: var(--success); font-size: 1.8rem">+0</div>
+                </div>
+                <div>
+                    <div style="font-size: 0.9rem; color: var(--text-muted)">Deleted</div>
+                    <div class="big-number" id="valDel" style="color: var(--danger); font-size: 1.8rem">-0</div>
+                </div>
+            </div>
+            <div class="sub-text" style="margin-top: 10px;">
+                *Data from all repos (may be 0 if GitHub hasn't cached)
+            </div>
+        </div>
+
+        <!-- Languages -->
+        <div class="card span-2">
+            <div class="card-header">
+                <span>LANGUAGES</span>
+                <i class="ph-fill ph-translate" style="color: #38bdf8"></i>
+            </div>
+            <div style="height: 120px;">
+                <canvas id="langChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Top Contributors -->
+        <div class="card span-2 row-span-2" style="min-height: 350px;">
+            <div class="card-header">
+                <span>TOP 5 CONTRIBUTORS</span>
+                <i class="ph-fill ph-crown" style="color: #eab308"></i>
+            </div>
+            <ul class="contrib-list" id="contribList"></ul>
+            <div class="sub-text" id="subContrib">Based on all PRs + Issues in 2025</div>
+        </div>
+
+        <!-- Commit History Chart -->
+        <div class="card span-2 row-span-2">
+            <div class="card-header">
+                <span id="chartHeader">COMMIT HISTORY 2025</span>
+                <i class="ph-fill ph-trend-up"></i>
+            </div>
+            <div style="height: 100%; min-height: 250px;">
+                <canvas id="activityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Button -->
+    <button class="btn-download" id="btnDownload" onclick="downloadImage()">
+        <i class="ph-bold ph-download-simple"></i> Download as Image
+    </button>
+</div>
+
+<script>
+    // ========== Configuration ==========
+    let CONFIG = {
+        year: 2025,
+        batchSize: 5,
+        maxSearchPages: 10,
+        retryDelay: 1000,
+        batchDelay: 100
+    };
+
+    // ========== DOM Elements ==========
+    const elements = {
+        orgName: () => document.getElementById('orgName'),
+        token: () => document.getElementById('token'),
+        yearSelect: () => document.getElementById('yearSelect'),
+        loader: () => document.getElementById('loader'),
+        loaderStatus: () => document.getElementById('loaderStatus'),
+        errorMsg: () => document.getElementById('errorMsg'),
+        loginArea: () => document.getElementById('loginArea'),
+        orgHeader: () => document.getElementById('orgHeader'),
+        orgAvatar: () => document.getElementById('orgAvatar'),
+        orgDisplayName: () => document.getElementById('orgDisplayName'),
+        orgDescription: () => document.getElementById('orgDescription'),
+        mainDash: () => document.getElementById('mainDash'),
+        btnPrimary: () => document.querySelector('.btn-primary'),
+        btnDownload: () => document.getElementById('btnDownload'),
+        contribList: () => document.getElementById('contribList'),
+        headerYear: () => document.getElementById('headerYear'),
+        subCommits: () => document.getElementById('subCommits'),
+        subContrib: () => document.getElementById('subContrib'),
+        chartHeader: () => document.getElementById('chartHeader')
+    };
+
+    // ========== Utility Functions ==========
+    const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    const updateStatus = (msg) => {
+        const el = elements.loaderStatus();
+        if (el) el.innerText = msg;
+    };
+
+    const formatNumber = (num) => {
+        if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+        if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+        return num.toString();
+    };
+
+    // ========== API Functions ==========
+    async function fetchJSON(url, headers) {
+        const res = await fetch(url, { headers });
+        if (!res.ok) return null;
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    async function fetchWithRetry(url, headers) {
+        let res = await fetch(url, { headers });
+        if (res.status === 202) {
+            await sleep(CONFIG.retryDelay);
+            res = await fetch(url, { headers });
+        }
+        if (!res.ok) return null;
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
+    }
+
+    async function getOrgInfo(org, headers) {
+        const data = await fetchJSON(`https://api.github.com/orgs/${org}`, headers);
+        return data ? {
+            name: data.name || org,
+            avatar: data.avatar_url,
+            description: data.description || `@${org} on GitHub`
+        } : { name: org, avatar: '', description: '' };
+    }
+
+    async function getCount(query, headers) {
+        const url = `https://api.github.com/search/issues?q=${encodeURIComponent(query)}&per_page=1`;
+        const data = await fetchJSON(url, headers);
+        return data?.total_count || 0;
+    }
+
+    async function getTopContributors(org, headers) {
+        const map = {};
+        let page = 1;
+        const baseQuery = `org:${org}+created:${CONFIG.year}-01-01..${CONFIG.year}-12-31`;
+
+        updateStatus(`Scanning contributors (page ${page})...`);
+
+        while (page <= CONFIG.maxSearchPages) {
+            const url = `https://api.github.com/search/issues?q=${baseQuery}&sort=created&per_page=100&page=${page}`;
+            const res = await fetch(url, { headers });
+
+            // Handle rate limit
+            if (res.status === 403) {
+                const resetTime = res.headers.get('X-RateLimit-Reset');
+                if (resetTime) {
+                    const waitMs = (parseInt(resetTime) * 1000) - Date.now() + 1000;
+                    if (waitMs > 0 && waitMs < 60000) {
+                        updateStatus(`Rate limit, waiting ${Math.ceil(waitMs / 1000)}s...`);
+                        await sleep(waitMs);
+                        continue;
+                    }
+                }
+                break;
+            }
+
+            const data = await fetchJSON(url, headers);
+            const items = data?.items || [];
+
+            items.forEach(item => {
+                const user = item.user;
+                if (!user || user.type === 'Bot' || user.login.includes('[bot]')) return;
+
+                if (!map[user.login]) {
+                    map[user.login] = {
+                        login: user.login,
+                        avatar: user.avatar_url,
+                        score: 0,
+                        count: 0
+                    };
+                }
+                map[user.login].score += 1;
+                map[user.login].count++;
+            });
+
+            if (items.length < 100) break;
+
+            page++;
+            updateStatus(`Scanning contributors (page ${page}, ${Object.keys(map).length} users)...`);
+            await sleep(CONFIG.batchDelay);
+        }
+
+        return Object.values(map)
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 5);
+    }
+
+    async function getActiveRepos(org, headers) {
+        let allRepos = [];
+        let page = 1;
+
+        updateStatus(`Fetching repos list (page ${page})...`);
+
+        while (true) {
+            const url = `https://api.github.com/orgs/${org}/repos?sort=updated&per_page=100&page=${page}`;
+            const repos = await fetchJSON(url, headers);
+
+            if (!repos || repos.length === 0) break;
+
+            allRepos = allRepos.concat(repos.filter(r => !r.archived));
+
+            if (repos.length < 100) break;
+
+            page++;
+            updateStatus(`Fetching repos list (page ${page}, ${allRepos.length} repos)...`);
+            await sleep(50);
+        }
+
+        updateStatus(`Found ${allRepos.length} repos, starting analysis...`);
+        return allRepos;
+    }
+
+    async function analyzeDeep(repos, org, headers) {
+        let adds = 0, dels = 0, totalCommits = 0;
+        let langs = {};
+        let weeklyTrend = new Array(52).fill(0);
+        const total = repos.length;
+
+        for (let i = 0; i < repos.length; i += CONFIG.batchSize) {
+            const batch = repos.slice(i, i + CONFIG.batchSize);
+
+            await Promise.all(batch.map(async (repo) => {
+                try {
+                    // Fetch languages
+                    const langData = await fetchJSON(repo.languages_url, headers);
+                    if (langData) {
+                        Object.entries(langData).forEach(([lang, bytes]) => {
+                            langs[lang] = (langs[lang] || 0) + bytes;
+                        });
+                    }
+
+                    // Fetch code frequency (LOC changes)
+                    const locData = await fetchWithRetry(
+                        `https://api.github.com/repos/${org}/${repo.name}/stats/code_frequency`,
+                        headers
+                    );
+                    if (Array.isArray(locData)) {
+                        locData.forEach(([timestamp, added, deleted]) => {
+                            const year = new Date(timestamp * 1000).getFullYear();
+                            if (year === CONFIG.year) {
+                                adds += added;
+                                dels += Math.abs(deleted);
+                            }
+                        });
+                    }
+
+                    // Fetch commit participation
+                    const commitData = await fetchWithRetry(
+                        `https://api.github.com/repos/${org}/${repo.name}/stats/participation`,
+                        headers
+                    );
+                    if (commitData?.all) {
+                        commitData.all.forEach((val, idx) => {
+                            weeklyTrend[idx] += val;
+                            totalCommits += val;
+                        });
+                    }
+                } catch (err) {
+                    console.warn(`Error analyzing repo ${repo.name}:`, err);
+                }
+            }));
+
+            updateStatus(`Analyzing repos: ${Math.min(i + CONFIG.batchSize, total)}/${total} (${totalCommits.toLocaleString()} commits)...`);
+            await sleep(CONFIG.batchDelay);
+        }
+
+        return { adds, dels, totalCommits, langs, weeklyTrend };
+    }
+
+    // ========== Main Analysis Function ==========
+    async function runAnalysis() {
+        const org = elements.orgName().value.trim();
+        const token = elements.token().value.trim();
+        const selectedYear = parseInt(elements.yearSelect().value);
+
+        if (!org || !token) {
+            return alert("Missing Org or Token");
+        }
+
+        // Update CONFIG with selected year
+        CONFIG.year = selectedYear;
+
+        // Update year displays in header
+        elements.headerYear().innerText = selectedYear;
+
+        // UI: Show loading state
+        elements.btnPrimary().style.display = 'none';
+        elements.loader().style.display = 'block';
+        elements.errorMsg().style.display = 'none';
+
+        const headers = { 'Authorization': `token ${token}` };
+
+        try {
+            // Step 1: Get org info
+            updateStatus('Fetching organization info...');
+            const orgInfo = await getOrgInfo(org, headers);
+
+            // Step 2: Get overview counts
+            updateStatus('Counting PRs and Issues...');
+            const queryBase = `org:${org} created:${CONFIG.year}-01-01..${CONFIG.year}-12-31`;
+            const [prCount, mergedCount, issueCount] = await Promise.all([
+                getCount(`type:pr ${queryBase}`, headers),
+                getCount(`type:pr is:merged ${queryBase}`, headers),
+                getCount(`type:issue ${queryBase}`, headers)
+            ]);
+
+            // Step 3: Get top contributors
+            const topUsers = await getTopContributors(org, headers);
+
+            // Step 4: Get all repos
+            const activeRepos = await getActiveRepos(org, headers);
+
+            // Step 5: Deep analysis
+            const deepData = await analyzeDeep(activeRepos, org, headers);
+
+            // Render results
+            renderUI({
+                org: orgInfo,
+                pr: prCount,
+                merged: mergedCount,
+                issue: issueCount,
+                contributors: topUsers,
+                ...deepData
+            });
+
+        } catch (err) {
+            console.error(err);
+            elements.errorMsg().innerText = err.message;
+            elements.errorMsg().style.display = 'block';
+            elements.btnPrimary().style.display = 'block';
+        } finally {
+            elements.loader().style.display = 'none';
+        }
+    }
+
+    // ========== Render Functions ==========
+    function renderUI(data) {
+        // Hide login, show dashboard and download button
+        elements.loginArea().style.display = 'none';
+        elements.orgHeader().style.display = 'flex';
+        elements.mainDash().style.display = 'grid';
+        elements.btnDownload().style.display = 'flex';
+
+        // Update year in sub-texts
+        elements.subCommits().innerText = `Total commits in ${CONFIG.year}`;
+        elements.subContrib().innerText = `Based on all PRs + Issues in ${CONFIG.year}`;
+        elements.chartHeader().innerText = `COMMIT HISTORY ${CONFIG.year}`;
+
+        // Org header
+        elements.orgAvatar().src = data.org.avatar;
+        elements.orgDisplayName().innerText = data.org.name;
+        elements.orgDescription().innerText = data.org.description;
+
+        // Stats
+        document.getElementById('valCommits').innerText = data.totalCommits.toLocaleString();
+        document.getElementById('valPR').innerText = data.pr.toLocaleString();
+        document.getElementById('valIssues').innerText = data.issue.toLocaleString();
+        document.getElementById('valMerged').innerText = data.merged.toLocaleString();
+        document.getElementById('valAdd').innerText = `+${formatNumber(data.adds)}`;
+        document.getElementById('valDel').innerText = `-${formatNumber(data.dels)}`;
+
+        // Contributors list
+        renderContributors(data.contributors);
+
+        // Charts
+        renderLangChart(data.langs);
+        renderActivityChart(data.weeklyTrend);
+    }
+
+    function renderContributors(contributors) {
+        const list = elements.contribList();
+
+        if (contributors.length === 0) {
+            list.innerHTML = '<li style="padding:10px;text-align:center">Not enough data</li>';
+            return;
+        }
+
+        list.innerHTML = contributors.map((user, index) => `
+            <li class="contrib-item">
+                <span class="rank">#${index + 1}</span>
+                <img src="${user.avatar}" class="avatar" alt="${user.login}" />
+                <div>
+                    <div style="font-weight:bold">${user.login}</div>
+                    <div style="font-size:0.8em; color:var(--text-muted)">${user.count} contributions</div>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    function renderLangChart(langs) {
+        const ctx = document.getElementById('langChart').getContext('2d');
+        const sorted = Object.entries(langs)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: sorted.map(([name]) => name),
+                datasets: [{
+                    data: sorted.map(([, value]) => value),
+                    backgroundColor: ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: { color: '#a1a1aa', boxWidth: 10 }
+                    }
+                },
+                maintainAspectRatio: false
+            }
+        });
+    }
+
+    function renderActivityChart(data) {
+        const ctx = document.getElementById('activityChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: data.map((_, i) => `W${i + 1}`),
+                datasets: [{
+                    label: 'Commits',
+                    data: data,
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 2
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                maintainAspectRatio: false,
+                scales: {
+                    x: { display: false },
+                    y: {
+                        grid: { color: '#333' },
+                        ticks: { color: '#888' }
+                    }
+                }
+            }
+        });
+    }
+
+    // ========== Download Function ==========
+    async function downloadImage() {
+        const btn = elements.btnDownload();
+        const originalText = btn.innerHTML;
+        
+        try {
+            btn.innerHTML = '<i class="ph-bold ph-spinner"></i> Generating...';
+            btn.disabled = true;
+
+            // Get the container to capture
+            const container = document.querySelector('.container');
+            
+            // Create canvas from HTML
+            const canvas = await html2canvas(container, {
+                backgroundColor: '#09090b',
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                logging: false
+            });
+
+            // Create download link
+            const link = document.createElement('a');
+            const orgName = elements.orgDisplayName().innerText || 'org';
+            link.download = `${orgName}-wrapped-${CONFIG.year}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+        } catch (err) {
+            console.error('Download failed:', err);
+            alert('Failed to generate image. Please try again.');
+        } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    }
+</script>
+
+</body>
+</html>
